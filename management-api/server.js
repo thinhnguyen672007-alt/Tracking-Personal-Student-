@@ -19,6 +19,7 @@ app.use("/uploads", express.static(path.join(__dirname, 'uploads')));
 // xem và tự động tạo route app.get thay vi phải tạo hằng trăm file cho từng ảnh 
 // dirname làm cho mặc định sẽ có C:/Projects/Gym/config.
 
+app.use("/api/overview",  require("./routes/overview"));
 app.use("/api/students",  require("./routes/students"));
 app.use("/api/slots",     require("./routes/slots"));
 app.use("/api/documents", require("./routes/documents"));

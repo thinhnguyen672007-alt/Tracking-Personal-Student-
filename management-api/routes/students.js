@@ -1,51 +1,85 @@
-const db = require('../config/db');
 const express = require("express");
 const router = express.Router();
+const Student = require("../models/student");
+const db = require("../config/db");
 
-const Student = {
-    findAll : async () => {
-        const [rows] = await db.query(
-            `select *, (total_sessions - used_sessions) as remaining_session
-            from students order by create_at DESC `
-        )
-        return rows;
-    },
+// GET /api/students
+router.get("/", async (req, res) => {
+  try {
+    const students = await Student.findAll();
+    res.json({ success: true, data: students });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-    findById : async () => {
-        const [rows] = await db.query(
-            `select s.*, (total_sessions - used_sessions) as remaining_session,
-            t.day_of_week, t.start_time, t.end_time
-            from students s
-            left join time_slots t
-            on t.student_id = s.id
-            where s.id = ?`, [id]
-        );
-        return rows[0] || null;
-    },
+// GET /api/students/:id
+router.get("/:id", async (req, res) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ success: false, error: "Student not found" });
+    res.json({ success: true, data: student });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-      create: async ({ name, class: cls, phone, parent_name, notes, total_sessions }) => {
-    const [result] = await db.query(
-      `INSERT INTO students (name, class, phone, parent_name, notes, total_sessions, used_sessions)
-       VALUES (?, ?, ?, ?, ?, ?, 0)`,
-      [name, cls, phone || null, parent_name || null, notes || null, total_sessions || 0]
+// POST /api/students
+router.post("/", async (req, res) => {
+  try {
+    const { name, class: cls } = req.body;
+
+    // Validate bắt buộc
+    if (!name || !cls) {
+      return res.status(400).json({ success: false, error: "name và class là bắt buộc" });
+    }
+
+    // Kiểm tra free slots còn đủ không
+    const [[{ count }]] = await db.query(
+      "SELECT COUNT(*) AS count FROM time_slots WHERE is_assigned = 0"
     );
-    return result.insertId;
-  },
+    if (count < 3) {
+      return res.status(200).json({
+        success: false,
+        warning: true,
+        freeSlots: count,
+        message: `Chỉ còn ${count} slot trống. Cần ít nhất 3 slot trước khi thêm học sinh mới.`,
+      });
+    }
 
-  update: async (id, { name, class: cls, phone, parent_name, notes, total_sessions }) => {
-    const [result] = await db.query(
-      `UPDATE students SET name=?, class=?, phone=?, parent_name=?, notes=?, total_sessions=?
-       WHERE id=?`,
-      [name, cls, phone || null, parent_name || null, notes || null, total_sessions, id]
-    );
-    return result.affectedRows;
-  },
+    const id = await Student.create(req.body);
+    const newStudent = await Student.findById(id);
+    res.status(201).json({ success: true, data: newStudent });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-  delete: async (id) => {
-    const [result] = await db.query("DELETE FROM students WHERE id=?", [id]);
-    return result.affectedRows;
-  },
-};
+// PUT /api/students/:id
+router.put("/:id", async (req, res) => {
+  try {
+    const { name, class: cls } = req.body;
+    if (!name || !cls) {
+      return res.status(400).json({ success: false, error: "name và class là bắt buộc" });
+    }
+    const affected = await Student.update(req.params.id, req.body);
+    if (!affected) return res.status(404).json({ success: false, error: "Student not found" });
+    const updated = await Student.findById(req.params.id);
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-module.exports = Student;
-module.exports = router; 
+// DELETE /api/students/:id
+router.delete("/:id", async (req, res) => {
+  try {
+    const affected = await Student.delete(req.params.id);
+    if (!affected) return res.status(404).json({ success: false, error: "Student not found" });
+    res.json({ success: true, message: "Đã xóa học sinh" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+module.exports = router;

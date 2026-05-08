@@ -1,77 +1,93 @@
-const db = require("../config/db");
 const express = require("express");
 const router = express.Router();
+const Slot = require("../models/slot");
 
-const Slot = {
-  findAll: async () => {
-    const [rows] = await db.query(
-      `SELECT t.*, s.name AS student_name, s.class AS student_class,
-        (s.total_sessions - s.used_sessions) AS remaining_sessions
-       FROM time_slots t
-       LEFT JOIN students s ON s.id = t.student_id
-       ORDER BY FIELD(t.day_of_week,
-         'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
-         t.start_time`
-    );
-    return rows;
-  },
+// GET /api/slots
+router.get("/", async (req, res) => {
+  try {
+    const slots = await Slot.findAll();
+    res.json({ success: true, data: slots });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-  findFree: async () => {
-    const [rows] = await db.query(
-      `SELECT * FROM time_slots WHERE is_assigned = 0
-       ORDER BY FIELD(day_of_week,
-         'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
-         start_time`
-    );
-    return rows;
-  },
+// GET /api/slots/free
+router.get("/free", async (req, res) => {
+  try {
+    const slots = await Slot.findFree();
+    res.json({ success: true, data: slots });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-  findAssigned: async () => {
-    const [rows] = await db.query(
-      `SELECT t.*, s.name AS student_name, s.class AS student_class,
-        s.phone AS student_phone, s.parent_name,
-        (s.total_sessions - s.used_sessions) AS remaining_sessions
-       FROM time_slots t
-       INNER JOIN students s ON s.id = t.student_id
-       WHERE t.is_assigned = 1
-       ORDER BY FIELD(t.day_of_week,
-         'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
-         t.start_time`
-    );
-    return rows;
-  },
+// GET /api/slots/active
+router.get("/active", async (req, res) => {
+  try {
+    const slots = await Slot.findAssigned();
+    res.json({ success: true, data: slots });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-  create: async ({ day_of_week, start_time, end_time }) => {
-    const [result] = await db.query(
-      `INSERT INTO time_slots (day_of_week, start_time, end_time, is_assigned)
-       VALUES (?, ?, ?, 0)`,
-      [day_of_week, start_time, end_time]
-    );
-    return result.insertId;
-  },
+// POST /api/slots
+router.post("/", async (req, res) => {
+  try {
+    const { day_of_week, start_time, end_time } = req.body;
+    if (!day_of_week || !start_time || !end_time) {
+      return res.status(400).json({ success: false, error: "Thiếu thông tin slot" });
+    }
 
-  assign: async (slotId, studentId) => {
-    const [result] = await db.query(
-      `UPDATE time_slots SET is_assigned = 1, student_id = ?
-       WHERE id = ? AND is_assigned = 0`,
-      [studentId, slotId]
-    );
-    return result.affectedRows;
-  },
+    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    if (!days.includes(day_of_week)) {
+      return res.status(400).json({ success: false, error: "day_of_week không hợp lệ" });
+    }
 
-  unassign: async (slotId) => {
-    const [result] = await db.query(
-      `UPDATE time_slots SET is_assigned = 0, student_id = NULL WHERE id = ?`,
-      [slotId]
-    );
-    return result.affectedRows;
-  },
+    const id = await Slot.create({ day_of_week, start_time, end_time });
+    res.status(201).json({ success: true, data: { id, day_of_week, start_time, end_time } });
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ success: false, error: "Slot này đã tồn tại" });
+    }
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-  delete: async (id) => {
-    const [result] = await db.query("DELETE FROM time_slots WHERE id = ?", [id]);
-    return result.affectedRows;
-  },
-};
+// POST /api/slots/:id/assign
+router.post("/:id/assign", async (req, res) => {
+  try {
+    const { student_id } = req.body;
+    if (!student_id) return res.status(400).json({ success: false, error: "student_id là bắt buộc" });
+    const affected = await Slot.assign(req.params.id, student_id);
+    if (!affected) return res.status(409).json({ success: false, error: "Slot đã được dùng hoặc không tồn tại" });
+    res.json({ success: true, message: "Đã assign học sinh vào slot" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
-module.exports = Slot;
-module.exports = router; 
+// POST /api/slots/:id/unassign
+router.post("/:id/unassign", async (req, res) => {
+  try {
+    const affected = await Slot.unassign(req.params.id);
+    if (!affected) return res.status(404).json({ success: false, error: "Slot không tồn tại" });
+    res.json({ success: true, message: "Slot đã được giải phóng" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// DELETE /api/slots/:id
+router.delete("/:id", async (req, res) => {
+  try {
+    const affected = await Slot.delete(req.params.id);
+    if (!affected) return res.status(404).json({ success: false, error: "Slot không tồn tại" });
+    res.json({ success: true, message: "Đã xóa slot" });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+module.exports = router;
