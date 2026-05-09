@@ -1,5 +1,5 @@
-const express = require("express");
-const router = express.Router();
+const express = require("express");  
+const router = express.Router();     
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -42,6 +42,9 @@ router.get("/", async (req, res) => {
 // POST /api/documents/upload
 router.post("/upload", upload.single("file"), async (req, res) => {
   try {
+    console.log("File:", req.file);   
+    console.log("Body:", req.body);   
+
     if (!req.file) return res.status(400).json({ success: false, error: "Chưa chọn file" });
     const { class_name } = req.body;
     if (!class_name) {
@@ -73,5 +76,6 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 });
+
 
 module.exports = router;

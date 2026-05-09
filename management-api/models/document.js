@@ -1,6 +1,4 @@
 const db = require('../config/db');
-const express = require("express");
-const router = express.Router();
 
 const Document = {
   findAll: async () => {
@@ -28,4 +26,3 @@ const Document = {
 };
 
 module.exports = Document;
-module.exports = router; 

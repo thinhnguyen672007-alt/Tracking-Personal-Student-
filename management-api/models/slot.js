@@ -1,6 +1,4 @@
 const db = require("../config/db");
-const express = require('express')
-const router = express.Router();
 
 const Slot = {
   findAll: async () => {
