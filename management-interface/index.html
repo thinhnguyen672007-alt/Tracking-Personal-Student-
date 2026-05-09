@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduTrack — Teaching Management</title>
+  <link rel="stylesheet" href="css/main.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/animation.css" />
+</head>
+<body>
+
+<div class="app">
+  <!-- ======= SIDEBAR ======= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">📚</div>
+      <div>
+        <div class="logo-text">EduTrack</div>
+        <div class="logo-sub">Teaching System</div>
+      </div>
+    </div>
+
+    <nav>
+      <div class="nav-item active" onclick="navigate('overview', this)">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Overview</span>
+      </div>
+      <div class="nav-item" onclick="navigate('schedule', this)">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">Available Schedule</span>
+      </div>
+      <div class="nav-item" onclick="navigate('active', this)">
+        <span class="nav-icon">🎯</span>
+        <span class="nav-label">Active Classes</span>
+      </div>
+      <div class="nav-item" onclick="navigate('free', this)">
+        <span class="nav-icon">🟢</span>
+        <span class="nav-label">Free Slots</span>
+      </div>
+      <div class="nav-item" onclick="navigate('students', this)">
+        <span class="nav-icon">👨‍🎓</span>
+        <span class="nav-label">Students</span>
+      </div>
+      <div class="nav-item" onclick="navigate('documents', this)">
+        <span class="nav-icon">📂</span>
+        <span class="nav-label">Documents</span>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="premium-card">
+        <p>Quản lý lịch dạy và học sinh hiệu quả hơn!</p>
+        <button class="premium-btn">✨ EduTrack Pro</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ======= MAIN ======= -->
+  <div class="main">
+    <header class="topbar">
+      <div>
+        <div class="topbar-title" id="page-title">Overview</div>
+        <div class="topbar-sub" id="page-sub">Tổng quan hệ thống</div>
+      </div>
+      <div class="topbar-right">
+        <button id="collapse-btn"
+    style="background:rgba(255,255,255,0.05);border:1px solid var(--border);
+           color:var(--text-secondary);border-radius:8px;padding:6px 10px;
+           cursor:pointer;font-size:14px;transition:all 0.2s"
+    onclick="toggleSidebar()" title="Thu gọn sidebar">☰</button>
+        <div class="avatar" title="Giáo viên">GV</div>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <section class="section active" id="sec-overview">
+        <div id="stat-grid" class="stat-grid"></div>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div>
+              <div style="font-weight:600;font-size:14px">Weekly Activity</div>
+              <div style="font-size:11px;color:var(--text-muted)">Số slot đang dạy theo ngày</div>
+            </div>
+          </div>
+          <canvas id="weekly-chart" width="700" height="200"
+            style="width:100%;height:200px"></canvas>
+        </div>
+      </section>
+
+      <!-- SCHEDULE (Ngày 4) -->
+      <section class="section" id="sec-schedule">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Available Schedule</div>
+            <div class="section-sub">Lịch có thể dạy</div>
+          </div>
+          <button class="btn btn-primary" onclick="UI.openModal('modal-add-slot')">
+            + Add Teaching Time
+          </button>
+        </div>
+        <div id="schedule-list"></div>
+      </section>
+
+      <!-- ACTIVE (Ngày 4) -->
+      <section class="section" id="sec-active">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Active Classes</div>
+            <div class="section-sub">Lịch đang dạy</div>
+          </div>
+        </div>
+        <div id="active-list"></div>
+      </section>
+
+      <!-- FREE SLOTS (Ngày 4) -->
+      <section class="section" id="sec-free">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Free Slots</div>
+            <div class="section-sub">Slot chưa có học sinh</div>
+          </div>
+        </div>
+        <div id="free-list"></div>
+      </section>
+
+      <!-- STUDENTS (Ngày 4) -->
+      <section class="section" id="sec-students">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Students</div>
+            <div class="section-sub">Danh sách học sinh</div>
+          </div>
+          <button class="btn btn-primary" onclick="addStudentClick()">
+            + Add Student
+          </button>
+        </div>
+        <div id="students-list"></div>
+      </section>
+
+      <!-- DOCUMENTS (Ngày 4) -->
+      <section class="section" id="sec-documents">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Documents</div>
+            <div class="section-sub">Tài liệu theo lớp</div>
+          </div>
+          <button class="btn btn-primary" onclick="UI.openModal('modal-upload-doc')">
+            + Upload Document
+          </button>
+        </div>
+        <div id="documents-list"></div>
+      </section>
+
+    </div><!-- end .content -->
+  </div><!-- end .main -->
+</div><!-- end .app -->
+
+<!-- ======= TOAST CONTAINER ======= -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ======= MODALS ======= -->
+
+<!-- Modal: Add Slot -->
+<div class="modal-overlay" id="modal-add-slot">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">➕ Thêm giờ dạy mới</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-add-slot')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ngày trong tuần</label>
+      <select class="form-select" id="slot-day">
+        <option value="">-- Chọn ngày --</option>
+        <option value="Monday">Thứ 2</option>
+        <option value="Tuesday">Thứ 3</option>
+        <option value="Wednesday">Thứ 4</option>
+        <option value="Thursday">Thứ 5</option>
+        <option value="Friday">Thứ 6</option>
+        <option value="Saturday">Thứ 7</option>
+        <option value="Sunday">Chủ nhật</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Giờ bắt đầu</label>
+        <input type="time" class="form-input" id="slot-start" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Giờ kết thúc</label>
+        <input type="time" class="form-input" id="slot-end" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="UI.closeModal('modal-add-slot')">Hủy</button>
+       <button class="btn btn-primary" onclick="event.stopPropagation();submitAddSlot()">Thêm slot</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Detail (dùng chung) -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Chi tiết</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-detail')">✕</button>
+    </div>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<!-- Modal: Assign student to slot -->
+<div class="modal-overlay" id="modal-assign">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👤 Assign học sinh vào slot</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-assign')">✕</button>
+    </div>
+    <div style="margin-bottom:16px;padding:12px;background:var(--bg-secondary);border-radius:10px">
+      <div style="font-size:11px;color:var(--text-muted)">Slot đã chọn</div>
+      <div style="font-size:14px;font-weight:600;margin-top:4px" id="assign-slot-info"></div>
+    </div>
+    <input type="hidden" id="assign-slot-id" />
+    <div class="form-group">
+      <label class="form-label">Chọn học sinh</label>
+      <select class="form-select" id="assign-student-select"></select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="UI.closeModal('modal-assign')">Hủy</button>
+      <button class="btn btn-primary" onclick="event.stopPropagation();submitAssign()">Assign</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Add/Edit Student -->
+<div class="modal-overlay" id="modal-student">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="student-modal-title">Thêm học sinh mới</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-student')">✕</button>
+    </div>
+    <form id="student-form" onsubmit="event.preventDefault()">
+      <input type="hidden" id="student-id" />
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Tên học sinh *</label>
+          <input class="form-input" id="student-name" placeholder="Nguyễn Văn A" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lớp *</label>
+          <input class="form-input" id="student-class" placeholder="10A" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Số điện thoại</label>
+          <input class="form-input" id="student-phone" placeholder="0901234567" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tên phụ huynh</label>
+          <input class="form-input" id="student-parent" placeholder="Nguyễn Văn B" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tổng số buổi học</label>
+        <input class="form-input" id="student-sessions" type="number" min="0" placeholder="20" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ghi chú</label>
+        <textarea class="form-textarea" id="student-notes" placeholder="Ghi chú thêm..."></textarea>
+      </div>
+    </form>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="UI.closeModal('modal-student')">Hủy</button>
+      <button class="btn btn-primary" onclick="event.stopPropagation();submitStudent()">Lưu</button>
+      </div>
+  </div>
+</div>
+
+<!-- Modal: Upload Document -->
+<div class="modal-overlay" id="modal-upload-doc">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📤 Upload tài liệu</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-upload-doc')">✕</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tên lớp</label>
+      <input class="form-input" id="doc-class" placeholder="VD: 10A, 11B..." />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Chọn file (PDF, Word, PPT, ảnh — tối đa 10MB)</label>
+      <input type="file" class="form-input" id="doc-file"
+        accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.txt" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="UI.closeModal('modal-upload-doc')">Hủy</button>
+      <button class="btn btn-primary" onclick="event.stopPropagation(); submitUpload()">Upload</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ======= SCRIPTS ======= -->
+<script src="js/api.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/overview.js"></script>
+<script src="js/schedule.js"></script>
+<script src="js/students.js"></script>
+<script src="js/documents.js"></script>
+
+<script>
+  const pages = {
+    overview:  { title: "Overview",           sub: "Tổng quan hệ thống" },
+    schedule:  { title: "Available Schedule",  sub: "Lịch có thể dạy" },
+    active:    { title: "Active Classes",      sub: "Lịch đang dạy" },
+    free:      { title: "Free Slots",          sub: "Slot chưa có học sinh" },
+    students:  { title: "Students",            sub: "Danh sách học sinh" },
+    documents: { title: "Documents",           sub: "Tài liệu theo lớp" },
+  };
+
+  const loaders = {
+    overview:  loadOverview,
+    schedule:  loadSchedule,
+    active:    loadActive,
+    free:      loadFree,
+    students:  loadStudents,
+    documents: loadDocuments,
+  };
+
+  function navigate(page, el) {
+    document.querySelectorAll(".nav-item").forEach(e => e.classList.remove("active"));
+    el.classList.add("active");
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById(`sec-${page}`).classList.add("active");
+    document.getElementById("page-title").textContent = pages[page].title;
+    document.getElementById("page-sub").textContent   = pages[page].sub;
+    if (loaders[page]) loaders[page]();
+}
+
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("collapsed");
+  }
+
+  // Init
+  loadOverview();
+</script>
+</body>
+</html>
